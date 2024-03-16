@@ -1,12 +1,15 @@
 ---
 title: "R project"
-author: "Pablo"
+author: "Pablo Martínez and Oriol Bustos"
 date: "2024-03-15"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(tibble)
+library(corrplot)
 ```
 
 ## R Project
@@ -19,11 +22,6 @@ data<-read.csv("Life_Expectancy_Data.csv")
 
 As we can observe, the data is already downloaded as a dataframe format. Now we should transform this dataframe to a tibble format: 
 
-```{r}
-install.packages("tibble")
-library(tibble)
-
-```
 
 ```{r}
 df_tib = as_tibble(data)
@@ -31,7 +29,7 @@ df_tib = as_tibble(data)
 
 We start with the step of cleanning our data:
 
-- Remove the 'NAN' values: 
+- Remove the 'NAN' values (deletes the whole row): 
 ```{r}
 clean_df<- na.omit(df_tib)
 ```
@@ -47,22 +45,23 @@ library(dplyr)
 Let's explore the LifeExtacncy evolution between 2002 and 2005: 
 
 ```{r}
-subset_0205<- clean_df%>%
-  filter(Year>= 2002, Year<= 2005)%>%
+start_year = 2000
+end_year = 2015
+
+subset_0205 <- clean_df %>%
+  filter(Year >= start_year, Year <= end_year) %>%
+  group_by(Year)
+
+subset_averageLifeExpectancy <- clean_df %>%
+  filter(Year >= start_year, Year <= end_year) %>%
   group_by(Year)%>%
-
-```
-
-Now we visualize the subset created through ggplot: 
-```{r}
-install.packages("ggplot2")
-```
-```{r}
-library(ggplot2)
+  summarise(AverageLifeExpectancy = mean(Life.expectancy, na.rm = TRUE))
 ```
 
 ```{r}
 ggplot(subset_0205, aes(x=Year, y= Life.expectancy))+geom_col()+expand_limits(y=0)
+
+ggplot(subset_averageLifeExpectancy, aes(x=Year, y= AverageLifeExpectancy))+geom_col()+expand_limits(y=0)
 ```
 We can see that in between 2002 and 2005 the Life Expectancy increases with the years.
 
@@ -83,14 +82,10 @@ correlation_df$Diphtheria <- as.numeric(correlation_df$Diphtheria)
 correlation_df<-correlation_df[ ,!(names(correlation_df) %in% c("Country", "Status"))]
 ```
 
-Then we need to install corrplot package first: 
 ```{r}
-install.packages("corrplot")
-```
-```{r}
-library(corrplot)
 correlation_matrix<- cor(correlation_df)
-corrplot(correlation_matrix, method="color", type="upper", tl.col = "black", tl.srt=45)
+corrplot(correlation_matrix, method="color", type="upper",
+         tl.col = "black", tl.srt=45, tl.cex=0.5)
 ```
 Among all these values, let's infer in which variables are more correlated with the Life Expectancy by taking only the 5 highest values in the correlation matrix, discarding the correlation of Life expectancy with itself obviously: 
 
@@ -120,18 +115,18 @@ Now let's explore in how Life Expectancy is affected in different continents in 
 ```{r}
 Africa <- c(
   "Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi",
-  "Cape Verde", "Cameroon", "Chad", "Comoros", "Democratic Republic of the Congo",
+  "Cape Verde", "Cameroon", "Cabo Verde","Chad", "Comoros", "Democratic Republic of the Congo",
   "Djibouti", "Egypt", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia",
   "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Ivory Coast",
   "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali",
   "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger",
   "Nigeria", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles",
   "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania",
-  "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe")
+  "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe","Central African Republic", "Swaziland")
 Europe <- c(
   "Albania", "Andorra", "Armenia", "Austria", "Azerbaijan", 
   "Belarus", "Belgium", "Bosnia and Herzegovina", "Bulgaria",
-  "Croatia", "Cyprus", "Czech Republic","Denmark","Estonia","Finland", "France","Georgia", "Germany", "Greece","Hungary","Iceland", "Ireland", "Italy","Kazakhstan", "Kosovo","Latvia", "Liechtenstein", "Lithuania", "Luxembourg","Malta", "Moldova", "Monaco", "Montenegro",  "Netherlands", "North Macedonia", "Norway","Poland", "Portugal","Romania", "Russia", "San Marino", "Serbia", "Slovakia", "Slovenia", "Spain", "Sweden","Switzerland","Turkey","Ukraine", "United Kingdom", "Vatican City")
+  "Croatia", "Cyprus", "Czech Republic","Denmark","Estonia","Finland", "France","Georgia", "Germany", "Greece","Hungary","Iceland", "Ireland", "Italy","Kazakhstan", "Kosovo","Latvia", "Liechtenstein", "Lithuania", "Luxembourg","Malta", "Moldova", "Monaco", "Montenegro",  "Netherlands", "North Macedonia", "Norway","Poland", "Portugal","Romania", "Russia", "San Marino", "Serbia", "Slovakia", "Slovenia", "Spain", "Sweden","Switzerland","Turkey","Ukraine", "United Kingdom", "Vatican City","Russian Federation")
 
 Asia <- c(
   "Afghanistan", "Armenia", "Azerbaijan", "Bahrain", "Bangladesh", "Bhutan",
@@ -150,7 +145,7 @@ Asia <- c(
   "Taiwan", "Tajikistan", "Thailand", "Timor-Leste", "Turkey", "Turkmenistan",
   "United Arab Emirates", "Uzbekistan",
   "Vietnam",
-  "Yemen")
+  "Yemen","Syrian Arab Republic")
 
   Oceania <- c(
   "Australia", "Fiji",
@@ -169,5 +164,117 @@ Asia <- c(
     "Haiti", "Honduras", "Jamaica", "Mexico", "Nicaragua", "Panama", "Paraguay", 
     "Peru", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", 
     "Suriname", "Trinidad and Tobago", "United States", "Uruguay", "Venezuela")
+  
+  subset_continents <- clean_df %>%
+mutate(Continent = case_when(
+    Country %in% Africa ~ "Africa",
+    Country %in% Europe ~ "Europe",
+    Country %in% Asia ~ "Asia",
+    Country %in% America ~ "America",
+    Country %in% Oceania ~ "Oceania",
+    TRUE ~ "Other")) %>%
+  group_by(Continent)
+  
+  countries_classified_other <- subset_continents %>%
+  filter(Continent == "Other") %>%
+  distinct(Country) %>%
+  pull(Country)
+
+print(countries_classified_other)
+```
+
+```{r}
+subset_continents <- clean_df %>%
+mutate(Continent = case_when(
+    Country %in% Africa ~ "Africa",
+    Country %in% Europe ~ "Europe",
+    Country %in% Asia ~ "Asia",
+    Country %in% America ~ "America",
+    Country %in% Oceania ~ "Oceania",
+    TRUE ~ "Other")) %>%
+  group_by(Continent)%>%
+  summarise(AverageLifeExpectancy = mean(Life.expectancy, na.rm = TRUE))
+
+ggplot(subset_continents, aes(x=Continent, y= AverageLifeExpectancy))+geom_col()+expand_limits(y=0)
+
+```
+```{r}
+first_world_countries <- c(
+  "Australia", "Andorra","Austria", "Belgium", "Canada", "Denmark",
+  "Finland", "France", "Germany", "Greece", "Iceland", 
+  "Ireland", "Italy", "Luxembourg", "Malta", "Netherlands",
+  "New Zealand", "Norway", "Portugal", "Spain", "Sweden",
+  "Switzerland", "United Kingdom", "United States","Estonia", "Poland", "Czech Republic","South Korea", "Japan"
+)
+
+second_world_countries <- c(
+  "China","Brasil","Belarus", "Bosnia and Herzegovina", "Bulgaria",
+  "Croatia", "Georgia", "Hungary",
+  "Latvia", "Lithuania", "Moldova",
+  "Montenegro", "Romania", "Russia", "Serbia",
+  "Slovakia", "Slovenia", "Ukraine", "Nigeria", "Chile", "Costa Rica","Russian Federation"
+)
+
+third_world_countries <- c("Albania",
+  # All countries from Africa
+  setdiff(Africa, c("Nigeria")),
+  # All countries from Oceania except Australia and New Zealand
+  setdiff(Oceania, c("Australia", "New Zealand")),
+  # All countries from America except Canada and United States
+  setdiff(America, c("Canada", "United States", "Chile", "Costa Rica","Brasil")),
+  # All countries from Asia except Japan and South Korea
+  setdiff(Asia, c("Japan", "South Korea", "China"))
+)
+
+subset_developed <- clean_df %>%
+mutate(Development = case_when(
+    Country %in% first_world_countries ~ "First",
+    Country %in% second_world_countries ~ "Second",
+    Country %in% third_world_countries ~ "Third",
+    TRUE ~ "Other")) %>%
+  group_by(Development)
+
+countries_classified_other <- subset_developed %>%
+  filter(Development == "Other") %>%
+  distinct(Country) %>%
+  pull(Country)
+
+print(countries_classified_other)
+
+```
+
+```{r}
+subset_developed <- clean_df %>%
+mutate(Development = case_when(
+    Country %in% first_world_countries ~ "First",
+    Country %in% second_world_countries ~ "Second",
+    Country %in% third_world_countries ~ "Third",
+    TRUE ~ "Other")) %>%
+  group_by(Development)%>%
+  summarise(AverageLifeExpectancy = mean(Life.expectancy, na.rm = TRUE))
+
+ggplot(subset_developed, aes(x=Development, y= AverageLifeExpectancy))+geom_col()+expand_limits(y=0)
+
+```
+
+```{r}
+ggplot(clean_df, aes(x = Year, y = Life.expectancy)) +
+  stat_summary(fun.y = mean, geom = "line") +
+  labs(title = "Average Life Expectancy Over Years",
+       x = "Year",
+       y = "Average Life Expectancy")
+
+ggplot(clean_df, aes(x = GDP, y = Life.expectancy)) +
+  geom_point(alpha = 0.5) +
+  labs(title = "Life Expectancy and GDP",
+       x = "GDP",
+       y = "Life Expectancy")
+ggplot(clean_df, aes(x = Status, y = Life.expectancy, fill = Status)) +
+  geom_boxplot() +
+  labs(title = "Life Expectancy by Development Status",
+       x = "Status",
+       y = "Life Expectancy")
+
+
 ```
 
