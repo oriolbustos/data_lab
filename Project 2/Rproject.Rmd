@@ -222,7 +222,7 @@ third_world_countries <- c("Albania",
   setdiff(Asia, c("Japan", "South Korea", "China"))
 )
 
-subset_developed <- clean_df %>%
+add_developed <- clean_df %>%
 mutate(Development = case_when(
     Country %in% first_world_countries ~ "First",
     Country %in% second_world_countries ~ "Second",
@@ -230,7 +230,7 @@ mutate(Development = case_when(
     TRUE ~ "Other")) %>%
   group_by(Development)
 
-countries_classified_other <- subset_developed %>%
+countries_classified_other <- add_developed %>%
   filter(Development == "Other") %>%
   distinct(Country) %>%
   pull(Country)
@@ -270,6 +270,13 @@ ggplot(clean_df, aes(x = Status, y = Life.expectancy, fill = Status)) +
   labs(title = "Life Expectancy by Development Status",
        x = "Status",
        y = "Life Expectancy")
+
+ggplot(add_developed, aes(x = BMI, y = Life.expectancy, color = Development, shape = Development)) +
+  geom_point(alpha = 0.5) +
+  labs(title = "Life Expectancy Over BMI by Development Status",
+       x = "BMI",
+       y = "Life Expectancy") +
+  theme(legend.position = "right")
 
 
 ```
