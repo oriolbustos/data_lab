@@ -1,0 +1,173 @@
+---
+title: "R project"
+author: "Pablo"
+date: "2024-03-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Project
+
+The first thing we do is to import the dataset from the directory: 
+
+```{r}
+data<-read.csv("Life_Expectancy_Data.csv")
+```
+
+As we can observe, the data is already downloaded as a dataframe format. Now we should transform this dataframe to a tibble format: 
+
+```{r}
+install.packages("tibble")
+library(tibble)
+
+```
+
+```{r}
+df_tib = as_tibble(data)
+```
+
+We start with the step of cleanning our data:
+
+- Remove the 'NAN' values: 
+```{r}
+clean_df<- na.omit(df_tib)
+```
+
+Now we work towards a dataset with the same data types and non 'NAN' values. 
+
+Let's work with dplyr library to explore data:
+
+```{r}
+library(dplyr)
+```
+
+Let's explore the LifeExtacncy evolution between 2002 and 2005: 
+
+```{r}
+subset_0205<- clean_df%>%
+  filter(Year>= 2002, Year<= 2005)%>%
+  group_by(Year)%>%
+
+```
+
+Now we visualize the subset created through ggplot: 
+```{r}
+install.packages("ggplot2")
+```
+```{r}
+library(ggplot2)
+```
+
+```{r}
+ggplot(subset_0205, aes(x=Year, y= Life.expectancy))+geom_col()+expand_limits(y=0)
+```
+We can see that in between 2002 and 2005 the Life Expectancy increases with the years.
+
+Now let's explore which are the variables that are mostly correlated to the Life Expectancy in general: 
+
+To run the correlation, all the dataframe values must be 'numeric' type, so we tranform the int values to numeric and remove the character variables to do this analysis, we will lose information about the country and the status, but we will perform a further analysis on that in the following steps:
+
+```{r}
+correlation_df<-clean_df
+correlation_df$Year <- as.numeric(correlation_df$Year)
+correlation_df$Adult.Mortality <- as.numeric(correlation_df$Adult.Mortality )
+correlation_df$infant.deaths <- as.numeric(correlation_df$infant.deaths)
+correlation_df$Hepatitis.B <- as.numeric(correlation_df$Hepatitis.B)
+correlation_df$Measles <- as.numeric(correlation_df$Measles)
+correlation_df$under.five.deaths <- as.numeric(correlation_df$under.five.deaths)
+correlation_df$Polio <- as.numeric(correlation_df$Polio)
+correlation_df$Diphtheria <- as.numeric(correlation_df$Diphtheria)
+correlation_df<-correlation_df[ ,!(names(correlation_df) %in% c("Country", "Status"))]
+```
+
+Then we need to install corrplot package first: 
+```{r}
+install.packages("corrplot")
+```
+```{r}
+library(corrplot)
+correlation_matrix<- cor(correlation_df)
+corrplot(correlation_matrix, method="color", type="upper", tl.col = "black", tl.srt=45)
+```
+Among all these values, let's infer in which variables are more correlated with the Life Expectancy by taking only the 5 highest values in the correlation matrix, discarding the correlation of Life expectancy with itself obviously: 
+
+```{r}
+correlation_Life_Exp  <- correlation_matrix["Life.expectancy", ]
+
+# sort the value in a decreasing order: 
+ordered_vals <- sort(correlation_Life_Exp, decreasing = TRUE)
+
+# imprimir los 5 valores máximos: 
+print(ordered_vals)
+
+```
+After looking at the correlations, the top5 significant ones are: 
+```{r}
+ordered_vals[-1]
+```
+
+```{r}
+highest_cor <- c(ordered_vals[2], ordered_vals[3], tail(ordered_vals, n=1), ordered_vals[length(ordered_vals)-1], ordered_vals[4])
+
+```
+
+
+Now let's explore in how Life Expectancy is affected in different continents in general: 
+
+```{r}
+Africa <- c(
+  "Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi",
+  "Cape Verde", "Cameroon", "Chad", "Comoros", "Democratic Republic of the Congo",
+  "Djibouti", "Egypt", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia",
+  "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Ivory Coast",
+  "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali",
+  "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger",
+  "Nigeria", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles",
+  "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania",
+  "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe")
+Europe <- c(
+  "Albania", "Andorra", "Armenia", "Austria", "Azerbaijan", 
+  "Belarus", "Belgium", "Bosnia and Herzegovina", "Bulgaria",
+  "Croatia", "Cyprus", "Czech Republic","Denmark","Estonia","Finland", "France","Georgia", "Germany", "Greece","Hungary","Iceland", "Ireland", "Italy","Kazakhstan", "Kosovo","Latvia", "Liechtenstein", "Lithuania", "Luxembourg","Malta", "Moldova", "Monaco", "Montenegro",  "Netherlands", "North Macedonia", "Norway","Poland", "Portugal","Romania", "Russia", "San Marino", "Serbia", "Slovakia", "Slovenia", "Spain", "Sweden","Switzerland","Turkey","Ukraine", "United Kingdom", "Vatican City")
+
+Asia <- c(
+  "Afghanistan", "Armenia", "Azerbaijan", "Bahrain", "Bangladesh", "Bhutan",
+  "Brunei", "Cambodia", "China", "Cyprus",
+  "Georgia", "India", "Indonesia", "Iran", "Iraq", "Israel",
+  "Japan", "Jordan",
+  "Kazakhstan", "Kuwait", "Kyrgyzstan",
+  "Laos", "Lebanon",
+  "Malaysia", "Maldives", "Mongolia", "Myanmar",
+  "Nepal", "North Korea",
+  "Oman",
+  "Pakistan", "Palestine", "Philippines",
+  "Qatar",
+  "Russia",
+  "Saudi Arabia", "Singapore", "South Korea", "Sri Lanka", "Syria",
+  "Taiwan", "Tajikistan", "Thailand", "Timor-Leste", "Turkey", "Turkmenistan",
+  "United Arab Emirates", "Uzbekistan",
+  "Vietnam",
+  "Yemen")
+
+  Oceania <- c(
+  "Australia", "Fiji",
+  "Kiribati",
+  "Marshall Islands", "Micronesia",
+  "Nauru", "New Zealand",
+  "Palau", "Papua New Guinea",
+  "Samoa", "Solomon Islands",
+  "Tonga", "Tuvalu",
+  "Vanuatu")
+
+  America <- c(
+    "Antigua and Barbuda", "Argentina", "Bahamas", "Barbados", "Belize", "Bolivia", 
+    "Brazil", "Canada", "Chile", "Colombia", "Costa Rica", "Cuba", "Dominica", 
+    "Dominican Republic", "Ecuador", "El Salvador", "Grenada", "Guatemala", "Guyana", 
+    "Haiti", "Honduras", "Jamaica", "Mexico", "Nicaragua", "Panama", "Paraguay", 
+    "Peru", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", 
+    "Suriname", "Trinidad and Tobago", "United States", "Uruguay", "Venezuela")
+```
+
