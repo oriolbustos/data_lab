@@ -216,13 +216,9 @@ second_world_countries <- c(
 )
 
 third_world_countries <- c("Albania",
-  # All countries from Africa
   setdiff(Africa, c("Nigeria")),
-  # All countries from Oceania except Australia and New Zealand
   setdiff(Oceania, c("Australia", "New Zealand")),
-  # All countries from America except Canada and United States
   setdiff(America, c("Canada", "United States", "Chile", "Costa Rica","Brasil")),
-  # All countries from Asia except Japan and South Korea
   setdiff(Asia, c("Japan", "South Korea", "China"))
 )
 
