@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(tibble)
 library(corrplot)
+library(dplyr)
+library(caret)
 ```
 
 ## R Project
@@ -36,11 +38,8 @@ clean_df<- na.omit(df_tib)
 
 Now we work towards a dataset with the same data types and non 'NAN' values. 
 
-Let's work with dplyr library to explore data:
+Lets work with dplyr library to explore data:
 
-```{r}
-library(dplyr)
-```
 
 Let's explore the LifeExtacncy evolution between 2002 and 2005: 
 
@@ -164,7 +163,9 @@ Asia <- c(
     "Haiti", "Honduras", "Jamaica", "Mexico", "Nicaragua", "Panama", "Paraguay", 
     "Peru", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", 
     "Suriname", "Trinidad and Tobago", "United States", "Uruguay", "Venezuela")
-  
+```
+
+```{r}
   subset_continents <- clean_df %>%
 mutate(Continent = case_when(
     Country %in% Africa ~ "Africa",
@@ -255,7 +256,7 @@ ggplot(subset_developed, aes(x=Development, y= AverageLifeExpectancy))+geom_col(
 
 ```{r}
 ggplot(clean_df, aes(x = Year, y = Life.expectancy)) +
-  stat_summary(fun.y = mean, geom = "line") +
+  stat_summary(fun = mean, geom = "line") +
   labs(title = "Average Life Expectancy Over Years",
        x = "Year",
        y = "Average Life Expectancy")
@@ -280,4 +281,140 @@ ggplot(add_developed, aes(x = BMI, y = Life.expectancy, color = Development, sha
 
 
 ```
+```{r}
+# analyze missing values
+# outliers boxplot
+# colinearity, should we delete some features?
+# pick some countries and analyze the correlation between xy linear, cubic...
+# split training testing
+# model <- lm(LifeExpectancy ~., data = train) # ~ . for all variables
+# summary(model)
+# predictes <- predict (model,newdata = test)
+# mse(predicted, LifeExpectancy.test) # mean square error
+```
+
+```{r}
+count_zeros <- colSums(df_tib == 0, na.rm = TRUE)
+
+count_zeros_df <- data.frame(category = names(count_zeros), CountOfZeros = count_zeros)
+
+
+ggplot(count_zeros_df, aes(x = category, y = CountOfZeros)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  labs(title = "Count of Zeros or NaN's for eacg category", x = "Category", y = "Count") +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 8)) 
+
+```
+
+```{r}
+# Your code with the necessary libraries loaded
+subset_developed_full <- clean_df %>%
+  mutate(Development = case_when(
+    Country %in% first_world_countries ~ "First",
+    Country %in% second_world_countries ~ "Second",
+    Country %in% third_world_countries ~ "Third",
+    TRUE ~ "Other")) %>%
+  filter(Development == "First") %>%
+  filter(Year == 2010) 
+
+#subset_developed_full <- subset_developed_full %>%
+#  mutate(IncomeLevel = cut(`Income.composition.of.resources`, 
+#                           breaks = quantile(`Income.composition.of.resources`, 
+#                                             probs = 0:2/2, na.rm = TRUE), 
+#                           include.lowest = TRUE, 
+#                           labels = c("Low", "High")))
+##c("Low", "Medium-Low", "Medium-High", "High")))
+
+
+
+```
+
+```{r}
+
+ggplot(subset_developed_full, aes(x = "", y = Income.composition.of.resources)) +
+  geom_boxplot() +
+  labs(y = "Income.composition.of.resources")
+
+ggplot(subset_developed_full, aes(x = "", y = Adult.Mortality)) +
+  geom_boxplot() +
+  labs(y = "Adult.Mortality")
+
+ggplot(subset_developed_full, aes(x = "", y = Schooling)) +
+  geom_boxplot() +
+  labs(y = "Schooling")
+
+ggplot(subset_developed_full, aes(x = "", y = HIV.AIDS)) +
+  geom_boxplot() +
+  labs(y = "HIV")
+
+ggplot(subset_developed_full, aes(x = "", y = BMI)) +
+  geom_boxplot() +
+  labs(y = "BMI")
+
+ggplot(subset_developed_full, aes(x = "", y = Measles)) +
+  geom_boxplot() +
+  labs(y = "Measles")
+```
+```{r}
+clean_df<-clean_df
+clean_df$Year <- as.numeric(correlation_df$Year)
+clean_df$Adult.Mortality <- as.numeric(correlation_df$Adult.Mortality )
+clean_df$infant.deaths <- as.numeric(correlation_df$infant.deaths)
+clean_df$Hepatitis.B <- as.numeric(correlation_df$Hepatitis.B)
+clean_df$Measles <- as.numeric(correlation_df$Measles)
+clean_df$under.five.deaths <- as.numeric(correlation_df$under.five.deaths)
+clean_df$Polio <- as.numeric(correlation_df$Polio)
+clean_df$Diphtheria <- as.numeric(correlation_df$Diphtheria)
+clean_df<-correlation_df[ ,!(names(correlation_df) %in% c("Country", "Status"))]
+
+set.seed(666)
+train_indices <- sample(1:nrow(clean_df), 0.7 * nrow(clean_df))
+
+train <- clean_df[train_indices, ]
+test <- clean_df[-train_indices, ]
+names(train)
+```
+
+model <- lm(LifeExpectancy ~., data = train_df)
+
+predictions <- predict(model, new_data)
+
+
+
+
+```{r}
+
+
+
+model <- lm(Life.expectancy ~., data = train) # ~ . for all variables
+summary(model)
+```
+
+
+```{r}
+predicted <- predict (model, newdata = test)
+
+mse <- mean((predicted-test$Life.expectancy)^2)
+print(mse)
+rmse <- RMSE(predicted, test$Life.expectancy)
+print(rmse)
+```
+
+```{r}
+model <- lm(Life.expectancy ~ Adult.Mortality+Income.composition.of.resources+Schooling+GDP+BMI,data = train)
+
+summary(model)
+```
+```{r}
+predicted <- predict (model, newdata = test)
+
+mse <- mean((predicted-test$Life.expectancy)^2)
+print(mse)
+rmse <- RMSE(predicted, test$Life.expectancy)
+print(rmse)
+```
+
+
+
 
