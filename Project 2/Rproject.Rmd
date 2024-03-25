@@ -7,110 +7,138 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+
+# **R Project**
+
+The aim of this project is to asses which are the variables that will have the greatest relevance to life expectancy and if it is possible to predict the evolution of life expectancy along the time. To answer these questions, public data from the Global Health Observatory (GHO) will be used. This dataset will contain 22 features, among which life expectancy will be present. The  data is collected from 193 countries between 2000 and 2015.
+
+# Index
+
+### 1. [Importing all the libraries](#libraries)
+### 2. [Load and clean-up the dataset](#load_clean)
+### 3. [Exploring new tibbles based on preliminary research](#explore_tibs)
+### 4. [Correlation variable analysis with Life Expectancy](#correlation)
+### 5. [Tackle the problem from a regression point of view](#regression)
+### 6. [Conclusion](#conclusion)
+
+### 1.Importing all  the libraries <a name="libraries"></a>
+
+```{r}
 library(ggplot2)
 library(tibble)
 library(corrplot)
+library(dplyr)
+library(caret)
+library(car)
 ```
 
-## R Project
+### 2.Load and clean-up the dataset <a name="load_clean"></a>
 
-The first thing we do is to import the dataset from the directory: 
+The first thing that must be done is to import the dataset and transform this dataframe to a to a tibble format. This transformation is mainly done because tibble is a modern dataframe format which is compatible to the tidyverse.  
 
 ```{r}
 data<-read.csv("Life_Expectancy_Data.csv")
-```
-
-As we can observe, the data is already downloaded as a dataframe format. Now we should transform this dataframe to a tibble format: 
-
-
-```{r}
 df_tib = as_tibble(data)
 ```
 
-We start with the step of cleanning our data:
+### *Cleaning up our data:*
 
-- Remove the 'NAN' values (deletes the whole row): 
+A very common way to start this analysis is to explore how is the repartition of the missing values inside the dataframe. For that, it is necessary to count the number of NAN values in each column of the dataframe: 
+
 ```{r}
-clean_df<- na.omit(df_tib)
+# sum of NAN's in each column
+NAN_counts <- colSums(is.na(df_tib))
+# total sum of NAN's in the dataframe
+NAN_tot <- sum(is.na(df_tib))
+cat("Number of NAN values en each column:\n\n")
+print(NAN_counts)
+cat("\n\nThe total number of NAN values in the dataframe is:",NAN_tot, "\n")
 ```
 
-Now we work towards a dataset with the same data types and non 'NAN' values. 
-
-Let's work with dplyr library to explore data:
+-The first thing that can be perceived after exploring the data is that there are plenty of NAN values in the years 2000 and 2015, so the rows related to these years should be removed from the dataframe to avoid missing values: 
 
 ```{r}
-library(dplyr)
+# filter the dataframe for the years 2000 and 2015
+rows_2000 <- df_tib%>%
+  filter(Year == 2000)
+rows_2015 <- df_tib%>%
+  filter(Year == 2015)
+# summing the nan values for these years
+NAN_counts_2002 <- sum(is.na(rows_2000))
+cat("Number of NAN values in the year 2000:", NAN_counts_2002, "\n")
+NAN_counts_2015 <- sum(is.na(rows_2015))
+cat("Number of NAN values in the year 2015:", NAN_counts_2015, "\n")
+# assessing the percentage that represents in NAN's towards the whole dataset:
+percent_NAN = ((NAN_counts_2002+NAN_counts_2015)/NAN_tot)*100
+cat("The percentage of total NAN's that represent these 2 years is", percent_NAN,"\n")
+
 ```
 
-Let's explore the LifeExtacncy evolution between 2002 and 2005: 
+As it is seen, years 2000 and 2015 contain more or less around 25% of the missing values of the whole dataset, so it is an interesting measure to remove these 2 years from the rows of the dataframe.  
 
 ```{r}
-start_year = 2000
-end_year = 2015
+new_df <- df_tib%>%
+  filter(Year != 2000)%>%
+  filter(Year != 2015)
+NAN_new <- colSums(is.na(new_df))
+cat("Number of NAN values en each column:\n\n")
+print(NAN_new)
+```
+For the remaining data what should be done is to remove the rows which still have missing values:  
 
-subset_0205 <- clean_df %>%
-  filter(Year >= start_year, Year <= end_year) %>%
-  group_by(Year)
+```{r}
+# use filter to take only the values without NAN
+clean_df <- na.omit(new_df)
+NAN_clean <- sum(is.na(clean_df))
+cat("The current number of NAN values is:", NAN_clean,".\n\n")
+```
 
+### *Then, we explore the datatype of all the variables in the dataframe:*
+
+```{r}
+glimpse(clean_df)
+```
+### *Computing the zero values present in the dataframe:*
+```{r}
+count_zeros <- colSums(df_tib == 0, na.rm = TRUE)
+
+count_zeros_df <- data.frame(category = names(count_zeros), CountOfZeros = count_zeros)
+
+
+ggplot(count_zeros_df, aes(x = category, y = CountOfZeros)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  labs(title = "Count of Zeros or NaN's for each category", x = "Category", y = "Count") +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 8)) 
+
+```
+
+## Exploring new tibbles based on preliminary research <a name="explore_tibs"></a>
+
+### *Exploring the evolution of life expectancy along the years:*
+
+```{r}
 subset_averageLifeExpectancy <- clean_df %>%
-  filter(Year >= start_year, Year <= end_year) %>%
   group_by(Year)%>%
   summarise(AverageLifeExpectancy = mean(Life.expectancy, na.rm = TRUE))
+
+ggplot(subset_averageLifeExpectancy, aes(x=Year, y= AverageLifeExpectancy))+geom_col()+expand_limits(y=0)+labs(title = "Average Life Expectancy for each year", x="Years")+theme_minimal()+theme(plot.title = element_text(hjust=0.5))
+
+ggplot(subset_averageLifeExpectancy, aes(x=Year, y= AverageLifeExpectancy))+geom_line()+labs(title = "Average Life Expectancy over Time", x = "Time")+theme_minimal()+theme(plot.title = element_text(hjust=0.5))
+
+cat("\n")
 ```
 
-```{r}
-ggplot(subset_0205, aes(x=Year, y= Life.expectancy))+geom_col()+expand_limits(y=0)
+It can be perceived that the evolution of life expectancy has been different in between 2000 and 2015. In the first years, life expectancy decreased drastically, while in the following years it followed a more or less constant linear growth. The behavior shown by the curve can be affected by numerous factors, such as the lack of data provided by developed countries during the first years, thing that could explain why the life expectancy seems to be so low during this period or by a false information contained in the dataset that could affect the final results presented.  
 
-ggplot(subset_averageLifeExpectancy, aes(x=Year, y= AverageLifeExpectancy))+geom_col()+expand_limits(y=0)
-```
-We can see that in between 2002 and 2005 the Life Expectancy increases with the years.
+### *Exploring the evolution of life expectancy for different continents:*
 
-Now let's explore which are the variables that are mostly correlated to the Life Expectancy in general: 
-
-To run the correlation, all the dataframe values must be 'numeric' type, so we tranform the int values to numeric and remove the character variables to do this analysis, we will lose information about the country and the status, but we will perform a further analysis on that in the following steps:
-
-```{r}
-correlation_df<-clean_df
-correlation_df$Year <- as.numeric(correlation_df$Year)
-correlation_df$Adult.Mortality <- as.numeric(correlation_df$Adult.Mortality )
-correlation_df$infant.deaths <- as.numeric(correlation_df$infant.deaths)
-correlation_df$Hepatitis.B <- as.numeric(correlation_df$Hepatitis.B)
-correlation_df$Measles <- as.numeric(correlation_df$Measles)
-correlation_df$under.five.deaths <- as.numeric(correlation_df$under.five.deaths)
-correlation_df$Polio <- as.numeric(correlation_df$Polio)
-correlation_df$Diphtheria <- as.numeric(correlation_df$Diphtheria)
-correlation_df<-correlation_df[ ,!(names(correlation_df) %in% c("Country", "Status"))]
-```
-
-```{r}
-correlation_matrix<- cor(correlation_df)
-corrplot(correlation_matrix, method="color", type="upper",
-         tl.col = "black", tl.srt=45, tl.cex=0.5)
-```
-Among all these values, let's infer in which variables are more correlated with the Life Expectancy by taking only the 5 highest values in the correlation matrix, discarding the correlation of Life expectancy with itself obviously: 
-
-```{r}
-correlation_Life_Exp  <- correlation_matrix["Life.expectancy", ]
-
-# sort the value in a decreasing order: 
-ordered_vals <- sort(correlation_Life_Exp, decreasing = TRUE)
-
-# imprimir los 5 valores máximos: 
-print(ordered_vals)
-
-```
-After looking at the correlations, the top5 significant ones are: 
-```{r}
-ordered_vals[-1]
-```
-
-```{r}
-highest_cor <- c(ordered_vals[2], ordered_vals[3], tail(ordered_vals, n=1), ordered_vals[length(ordered_vals)-1], ordered_vals[4])
-
-```
-
-
-Now let's explore in how Life Expectancy is affected in different continents in general: 
+In order to carry on this analysis, the countries should be grouped in the continents they belong to. For that, we asked ChatGPT to create vectors of the 5 main continents and store the names of the different countries.
 
 ```{r}
 Africa <- c(
@@ -122,11 +150,11 @@ Africa <- c(
   "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger",
   "Nigeria", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles",
   "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania",
-  "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe","Central African Republic", "Swaziland")
+  "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe","Central African Republic", "Swaziland","Côte d'Ivoire", "Congo", "United Republic of Tanzania")
 Europe <- c(
   "Albania", "Andorra", "Armenia", "Austria", "Azerbaijan", 
   "Belarus", "Belgium", "Bosnia and Herzegovina", "Bulgaria",
-  "Croatia", "Cyprus", "Czech Republic","Denmark","Estonia","Finland", "France","Georgia", "Germany", "Greece","Hungary","Iceland", "Ireland", "Italy","Kazakhstan", "Kosovo","Latvia", "Liechtenstein", "Lithuania", "Luxembourg","Malta", "Moldova", "Monaco", "Montenegro",  "Netherlands", "North Macedonia", "Norway","Poland", "Portugal","Romania", "Russia", "San Marino", "Serbia", "Slovakia", "Slovenia", "Spain", "Sweden","Switzerland","Turkey","Ukraine", "United Kingdom", "Vatican City","Russian Federation")
+  "Croatia", "Cyprus", "Czech Republic","Denmark","Estonia","Finland", "France","Georgia", "Germany", "Greece","Hungary","Iceland", "Ireland", "Italy","Kazakhstan", "Kosovo","Latvia", "Liechtenstein", "Lithuania", "Luxembourg","Malta", "Moldova", "Monaco", "Montenegro",  "Netherlands", "North Macedonia", "Norway","Poland", "Portugal","Romania", "Russia", "San Marino", "Serbia", "Slovakia", "Slovenia", "Spain", "Sweden","Switzerland","Turkey","Ukraine", "United Kingdom", "Vatican City","Russian Federation", "Czechia", "Republic of Moldova", "The former Yugoslav republic of Macedonia", "United Kingdom of Great Britain and Northern Ireland")
 
 Asia <- c(
   "Afghanistan", "Armenia", "Azerbaijan", "Bahrain", "Bangladesh", "Bhutan",
@@ -145,7 +173,7 @@ Asia <- c(
   "Taiwan", "Tajikistan", "Thailand", "Timor-Leste", "Turkey", "Turkmenistan",
   "United Arab Emirates", "Uzbekistan",
   "Vietnam",
-  "Yemen","Syrian Arab Republic")
+  "Yemen","Syrian Arab Republic","Brunei Darussalam", "Democratic People's Republic of Korea", "Iran (Islamic Republic of)", "Lao People's Democratic Republic", "Republic of Korea", "Viet Nam")
 
   Oceania <- c(
   "Australia", "Fiji",
@@ -155,7 +183,7 @@ Asia <- c(
   "Palau", "Papua New Guinea",
   "Samoa", "Solomon Islands",
   "Tonga", "Tuvalu",
-  "Vanuatu")
+  "Vanuatu", "Cook Islands", "Micronesia (Federated States of)", "Niue")
 
   America <- c(
     "Antigua and Barbuda", "Argentina", "Bahamas", "Barbados", "Belize", "Bolivia", 
@@ -163,8 +191,12 @@ Asia <- c(
     "Dominican Republic", "Ecuador", "El Salvador", "Grenada", "Guatemala", "Guyana", 
     "Haiti", "Honduras", "Jamaica", "Mexico", "Nicaragua", "Panama", "Paraguay", 
     "Peru", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", 
-    "Suriname", "Trinidad and Tobago", "United States", "Uruguay", "Venezuela")
-  
+    "Suriname", "Trinidad and Tobago", "United States", "Uruguay", "Venezuela","Bolivia (Plurinational State of)", "United States of America", "Venezuela (Bolivarian Republic of)")
+```
+
+Once the vectors are created, the idea is to create a subset using tidyverse that implements a new column called "Continent" where each country is associated to its continent.  
+
+```{r}
   subset_continents <- clean_df %>%
 mutate(Continent = case_when(
     Country %in% Africa ~ "Africa",
@@ -175,14 +207,14 @@ mutate(Continent = case_when(
     TRUE ~ "Other")) %>%
   group_by(Continent)
   
+# for the countries that didn't appear, after printing them we added them to the previous vectors depending on the continent they were belonging to
   countries_classified_other <- subset_continents %>%
   filter(Continent == "Other") %>%
   distinct(Country) %>%
   pull(Country)
 
-print(countries_classified_other)
+# print(countries_classified_other)
 ```
-
 ```{r}
 subset_continents <- clean_df %>%
 mutate(Continent = case_when(
@@ -195,25 +227,29 @@ mutate(Continent = case_when(
   group_by(Continent)%>%
   summarise(AverageLifeExpectancy = mean(Life.expectancy, na.rm = TRUE))
 
-ggplot(subset_continents, aes(x=Continent, y= AverageLifeExpectancy))+geom_col()+expand_limits(y=0)
-
+ggplot(subset_continents, aes(x=Continent, y= AverageLifeExpectancy))+geom_col()+expand_limits(y=0)+labs(title = "Average Life Expectancy for each Continent", x = "Continent")+theme_minimal()+theme(plot.title = element_text(hjust=0.5))
+cat("\n")
 ```
-```{r}
+As we can see, there is a big difference in terms of life expectancy between the highest and the lowest values, which correspond respectively to Europe and Africa. This shows that the continent should be a variable taken into account to explain the life expectancy of population around the world. 
+
+### *Exploring the evolution of life expectancy as a function of countries' level of development:*
+
+As in the previous section, we asked ChatGPT to create again some vectors classifying the countries towards their development status, as 1st, 2nd or 3rd world countries. Then, a subset for the dataset will be created adding as a new variable the development status of the country 
+
+``` {r}
 first_world_countries <- c(
   "Australia", "Andorra","Austria", "Belgium", "Canada", "Denmark",
   "Finland", "France", "Germany", "Greece", "Iceland", 
   "Ireland", "Italy", "Luxembourg", "Malta", "Netherlands",
   "New Zealand", "Norway", "Portugal", "Spain", "Sweden",
-  "Switzerland", "United Kingdom", "United States","Estonia", "Poland", "Czech Republic","South Korea", "Japan"
-)
+  "Switzerland", "United Kingdom", "United States","Estonia", "Poland", "Czech Republic","South Korea", "Japan","Monaco","San Marino", "United Kingdom of Great Britain and Northern Ireland")
 
 second_world_countries <- c(
   "China","Brasil","Belarus", "Bosnia and Herzegovina", "Bulgaria",
   "Croatia", "Georgia", "Hungary",
   "Latvia", "Lithuania", "Moldova",
   "Montenegro", "Romania", "Russia", "Serbia",
-  "Slovakia", "Slovenia", "Ukraine", "Nigeria", "Chile", "Costa Rica","Russian Federation"
-)
+  "Slovakia", "Slovenia", "Ukraine", "Nigeria", "Chile", "Costa Rica","Russian Federation","Czechia", "Republic of Moldova", "The former Yugoslav republic of Macedonia")
 
 third_world_countries <- c("Albania",
   setdiff(Africa, c("Nigeria")),
@@ -230,15 +266,14 @@ mutate(Development = case_when(
     TRUE ~ "Other")) %>%
   group_by(Development)
 
+# for the countries that didn't appear, after printing them we added them to the previous vectors depending on the status they were belonging to
 countries_classified_other <- add_developed %>%
   filter(Development == "Other") %>%
   distinct(Country) %>%
   pull(Country)
 
-print(countries_classified_other)
-
+# print(countries_classified_other)
 ```
-
 ```{r}
 subset_developed <- clean_df %>%
 mutate(Development = case_when(
@@ -249,35 +284,261 @@ mutate(Development = case_when(
   group_by(Development)%>%
   summarise(AverageLifeExpectancy = mean(Life.expectancy, na.rm = TRUE))
 
-ggplot(subset_developed, aes(x=Development, y= AverageLifeExpectancy))+geom_col()+expand_limits(y=0)
+ggplot(subset_developed, aes(x=Development, y= AverageLifeExpectancy))+geom_col()+expand_limits(y=0)+labs(title = "Average Life Expectancy as a function of the development", x = "Status")+theme_minimal()+theme(plot.title = element_text(hjust=0.5))
+cat("\n")
 
 ```
+### *Exploring the evolution of life expectancy for different variables:*
 
-```{r}
-ggplot(clean_df, aes(x = Year, y = Life.expectancy)) +
-  stat_summary(fun.y = mean, geom = "line") +
-  labs(title = "Average Life Expectancy Over Years",
-       x = "Year",
-       y = "Average Life Expectancy")
+Some other interesting variables that can show patterns towards the Life expectancy evolution are GDP (Gross Domestic Product), the predefined status in the dataset or the BMI (Body Mass Index). By evaluating these relationships, some graphically visual conclusions can be extracted directly.
 
-ggplot(clean_df, aes(x = GDP, y = Life.expectancy)) +
-  geom_point(alpha = 0.5) +
-  labs(title = "Life Expectancy and GDP",
+``` {r}
+ggplot(clean_df, aes(x = GDP, y = Life.expectancy, color = Status)) +
+  geom_point(alpha = 0.5) + theme_classic()+ scale_x_log10()+theme(plot.title = element_text(hjust=0.5))+
+  labs(title = "Life Expectancy as a function of GDP",
        x = "GDP",
        y = "Life Expectancy")
+
 ggplot(clean_df, aes(x = Status, y = Life.expectancy, fill = Status)) +
-  geom_boxplot() +
+  geom_boxplot() + theme_minimal() + theme(plot.title = element_text(hjust=0.5))+ 
   labs(title = "Life Expectancy by Development Status",
        x = "Status",
        y = "Life Expectancy")
 
 ggplot(add_developed, aes(x = BMI, y = Life.expectancy, color = Development, shape = Development)) +
-  geom_point(alpha = 0.5) +
+  geom_point(alpha = 0.5) + theme_classic() + theme(plot.title = element_text(hjust = 0.5))+
   labs(title = "Life Expectancy Over BMI by Development Status",
        x = "BMI",
-       y = "Life Expectancy") +
-  theme(legend.position = "right")
+       y = "Life Expectancy") 
 
 
 ```
+The results observed in the graphs reflect the following conclusions: 
 
+- In Developed countries with high GDP's the life expectancy increases notably compared to the low GDP developing countries
+- Life expectancy in countries of Developed status is significantly higher than in countries developing. 
+- BMI increases in countries with a higher level of development, and so does the life expectancy.
+
+## Correlation variable analysis with Life Expectancy <a name="correlation"></a>
+
+Now let's explore which are the variables that are mostly correlated to the Life Expectancy in general: 
+
+To run the correlation, all the dataframe values must be 'numeric' type, so we transform the int values to numeric and remove the character variables to do this analysis, we will lose information about the country and the status, but the correlation test can't be performed otherwise. 
+
+```{r}
+correlation_df<-clean_df
+correlation_df$Year <- as.numeric(correlation_df$Year)
+correlation_df$Adult.Mortality <- as.numeric(correlation_df$Adult.Mortality )
+correlation_df$infant.deaths <- as.numeric(correlation_df$infant.deaths)
+correlation_df$Hepatitis.B <- as.numeric(correlation_df$Hepatitis.B)
+correlation_df$Measles <- as.numeric(correlation_df$Measles)
+correlation_df$under.five.deaths <- as.numeric(correlation_df$under.five.deaths)
+correlation_df$Polio <- as.numeric(correlation_df$Polio)
+correlation_df$Diphtheria <- as.numeric(correlation_df$Diphtheria)
+correlation_df<-correlation_df[ ,!(names(correlation_df) %in% c("Country", "Status"))]
+```
+
+Once this is done, the correlation matrix is performed for all the variables in the dataframe. 
+
+```{r}
+correlation_matrix<- cor(correlation_df)
+corrplot(correlation_matrix,title = "Correlation Matrix", method="color", type="upper",
+         tl.col = "black", tl.srt=45, tl.cex=0.5)
+
+cat("\n")
+```
+Among all these values, let's infer in which variables are more correlated with the Life Expectancy by taking only the 5 highest values in the correlation matrix, discarding the correlation of Life expectancy with itself obviously: 
+
+```{r}
+# selecting the correlation between life expectancy and the other variables
+correlation_Life_Exp  <- correlation_matrix["Life.expectancy", ]
+# sort the value in a decreasing order: 
+ordered_vals <- sort(correlation_Life_Exp, decreasing = TRUE)
+# Printing all the correlations: 
+print(ordered_vals)
+```
+After looking at the correlations, the top5 significant ones are: 
+
+```{r}
+highest_cor <- c(ordered_vals[2], ordered_vals[3], tail(ordered_vals, n=1), ordered_vals[length(ordered_vals)-1], ordered_vals[4])
+print(highest_cor)
+```
+## Tackle the problem from a regression point of view <a name="regression"></a>
+
+### *Exploring the distribution of data in variables:*
+
+The first approach that must be performed is to determine what are the most relevant variables to predict life expectancy. We can orientate the analysis focusing in the top 5 correlations of variables towards life expectancy delivered by the correlation matrix. A way to detect wether a variable is trustful or not to use it for predicting is analyzing its distribution through boxplots and checking if there are too many outliers. For this purpose, a subset of 1st world countries in between 2010 and 2013 is selected and analyzed as it follows. 
+
+```{r}
+subset_developing_1013 <- add_developed %>%
+  filter(Development == "Third") %>%
+  filter(Year >= 2010 & Year<= 2013)
+
+subset_developing_1013$Year <- as.numeric(subset_developing_1013$Year)
+subset_developing_1013$Adult.Mortality <- as.numeric(subset_developing_1013$Adult.Mortality )
+subset_developing_1013$infant.deaths <- as.numeric(subset_developing_1013$infant.deaths)
+subset_developing_1013$Hepatitis.B <- as.numeric(subset_developing_1013$Hepatitis.B)
+subset_developing_1013$Measles <- as.numeric(subset_developing_1013$Measles)
+subset_developing_1013$under.five.deaths <- as.numeric(subset_developing_1013$under.five.deaths)
+subset_developing_1013$Polio <- as.numeric(subset_developing_1013$Polio)
+subset_developing_1013$Diphtheria <- as.numeric(subset_developing_1013$Diphtheria)
+subset_developing_1013<-subset_developing_1013[ ,!(names(subset_developing_1013) %in% c("Country", "Status"))]
+
+for (i in seq_along(subset_developing_1013)){
+  plot <- ggplot(subset_developing_1013, aes(x = "", y = subset_developing_1013[[i]])) +
+  geom_boxplot() + theme_bw() +
+  labs(y = as.character(names(subset_developing_1013)[[i]]))
+  
+  print(plot)
+}
+```
+
+So now from the information provided by the correlation matrix and the boxplots, some conclusions about which variables should be considered as relevant to predict life expectancy can be extracted. Concerning the 5 highest correlations, the ones showing the least outliers are Income composition of ressources and BMI. Other usable variables could be Alcohol, percentage expenditures, Polio, Diptheria, GDP, thinness..1.19.years or  thinness.5.9.years. 
+
+### *Perform predictions from the cleaned dataframe:*
+
+As a first trial to try to predict Life expectancy, the whole cleaned-up dataframe can be used. 
+
+```{r}
+# Converting integers to numeric and removing character variables
+clean_df<-clean_df
+clean_df$Year <- as.numeric(correlation_df$Year)
+clean_df$Adult.Mortality <- as.numeric(correlation_df$Adult.Mortality )
+clean_df$infant.deaths <- as.numeric(correlation_df$infant.deaths)
+clean_df$Hepatitis.B <- as.numeric(correlation_df$Hepatitis.B)
+clean_df$Measles <- as.numeric(correlation_df$Measles)
+clean_df$under.five.deaths <- as.numeric(correlation_df$under.five.deaths)
+clean_df$Polio <- as.numeric(correlation_df$Polio)
+clean_df$Diphtheria <- as.numeric(correlation_df$Diphtheria)
+clean_df<-correlation_df[ ,!(names(correlation_df) %in% c("Country", "Status"))]
+
+set.seed(666)
+# taking the 70% for training
+train_indices <- sample(1:nrow(clean_df), 0.7 * nrow(clean_df))
+
+# splitting into train and test
+train <- clean_df[train_indices, ]
+test <- clean_df[-train_indices, ]
+
+# define the model and the variables used in it
+model <- lm(Life.expectancy ~., data = train) # ~ . for all variables
+summary(model)
+
+# make the predictions
+predicted <- predict (model, newdata = test)
+
+# compare the values in the predictions tp the stored in the test set
+mse <- mean((predicted-test$Life.expectancy)^2)
+cat("The mean-squared error is: ", mse, ".\n")
+rmse <- RMSE(predicted, test$Life.expectancy)
+cat("The Root mean-squared error is: ", rmse, ".\n")
+```
+From this results, the aim is to obtain a better performance of the model in given subsets. The same model will be implemented for the subset created between 2010 and 2013 in 3rd world countries. In this case, 
+```{r}
+# Converting integers to numeric and removing character variable
+subset_developing_1013$Year <- as.numeric(subset_developing_1013$Year)
+subset_developing_1013$Adult.Mortality <- as.numeric(subset_developing_1013$Adult.Mortality )
+subset_developing_1013$infant.deaths <- as.numeric(subset_developing_1013$infant.deaths)
+subset_developing_1013$Hepatitis.B <- as.numeric(subset_developing_1013$Hepatitis.B)
+subset_developing_1013$Measles <- as.numeric(subset_developing_1013$Measles)
+subset_developing_1013$under.five.deaths <- as.numeric(subset_developing_1013$under.five.deaths)
+subset_developing_1013$Polio <- as.numeric(subset_developing_1013$Polio)
+subset_developing_1013$Diphtheria <- as.numeric(subset_developing_1013$Diphtheria)
+subset_developing_1013<-subset_developing_1013[ ,!(names(subset_developing_1013) %in% c("Country", "Status", "Development"))]
+
+set.seed(666)
+# taking the 70% for training
+train_indices <- sample(1:nrow(subset_developing_1013), 0.7 * nrow(subset_developing_1013))
+
+# splitting into train and test
+train <- subset_developing_1013[train_indices, ]
+test <- subset_developing_1013[-train_indices, ]
+```
+
+
+```{r}
+# define the model and the variables used in it
+model_third <- lm(Life.expectancy ~., data = train) # ~ . for all variables
+summary(model_third)
+
+# make the predictions
+predicted_third <- predict (model_third, newdata = test)
+
+# compare the values in the predictions to the stored in the test set
+mse <- mean((predicted_third-test$Life.expectancy)^2)
+cat("The mean-squared error is: ", mse, ".\n")
+rmse <- RMSE(predicted_third, test$Life.expectancy)
+cat("The Root mean-squared error is: ", rmse, ".\n")
+```
+For this subset the predictive error has decreased with respect to the analysis of the whole dataframe, which is a good point. The error is still high though, it will be suitable to develop some manners to reduce or explain it.
+
+### *Inflation variance factor:*
+
+The inflation variance factor (IVF) is an statistical measurement that quantifies the intensity of the multicollinearity in a normal least squares regression analysis. The index provided quantifies how the variance increases as a function of the collinearity given by variables. Collinearity is defined as the problem that occurs in a model where 2 or more independent variables have a strong linear relationship. 
+
+```{r}
+# install.packages("car")
+library(car)
+car::vif(model_third)
+```
+After getting this information of the model, some variables showing an extremely high responsibility on variance of the model will be removed. 
+
+```{r}
+model_third <- lm(Life.expectancy~.-infant.deaths-under.five.deaths-thinness..1.19.years-thinness.5.9.years, data=train)
+summary(model_third)
+
+# make the predictions
+predicted_third <- predict (model_third, newdata = test)
+
+# compare the values in the predictions to the stored in the test set
+mse <- mean((predicted_third-test$Life.expectancy)^2)
+cat("The mean-squared error is: ", mse, ".\n")
+rmse <- RMSE(predicted_third, test$Life.expectancy)
+cat("The Root mean-squared error is: ", rmse, ".\n")
+```
+As it can be seen the error has decreased after removing some variables that were highly contributing to the VIF until a predictive root mean-squared error of 2.927012, a significantly better performance than applying the model to all the dataframe.
+
+### *Prediction of life expectancy in 2014 in Third world countries:*
+
+Now that it is possible to perform the model and that it has been improved, we try to predict life expectancy in 2014 in 3rd world countries by using the subset between 2010 and 2013 as the training data. 
+
+```{r}
+# filtering for 3rd world countries in year 2014
+subset_developing_14 <- add_developed %>%
+  filter(Development == "Third") %>%
+  filter(Year == 2014)
+
+# Converting integers to numeric and removing character variable
+subset_developing_14$Year <- as.numeric(subset_developing_14$Year)
+subset_developing_14$Adult.Mortality <- as.numeric(subset_developing_14$Adult.Mortality )
+subset_developing_14$infant.deaths <- as.numeric(subset_developing_14$infant.deaths)
+subset_developing_14$Hepatitis.B <- as.numeric(subset_developing_14$Hepatitis.B)
+subset_developing_14$Measles <- as.numeric(subset_developing_14$Measles)
+subset_developing_14$under.five.deaths <- as.numeric(subset_developing_14$under.five.deaths)
+subset_developing_14$Polio <- as.numeric(subset_developing_14$Polio)
+subset_developing_14$Diphtheria <- as.numeric(subset_developing_14$Diphtheria)
+subset_developing_14<-subset_developing_14[ ,!(names(subset_developing_14) %in% c("Country", "Status", "Development"))]
+
+set.seed(666)
+
+# splitting into train and test
+train <- subset_developing_1013
+test <- subset_developing_14
+
+# define the model and the variables used in it
+model_14 <- lm(Life.expectancy~.-infant.deaths-under.five.deaths-thinness..1.19.years-thinness.5.9.years, data = train)
+summary(model_14)
+
+# make the predictions
+predicted_14 <- predict (model_14, newdata = test)
+
+# compare the values in the predictions to the stored in the test set
+mse <- mean((predicted_14-test$Life.expectancy)^2)
+cat("The mean-squared error is: ", mse, ".\n")
+rmse <- RMSE(predicted_14, test$Life.expectancy)
+cat("The Root mean-squared error is: ", rmse, ".\n")
+```
+
+### 6.Conclusion: <a name="conclusion"></a>
+
+The model created can be used to predict life expectancy with a certain accuracy. Even though the mean squared error is still high, some indicators suggest that the model has been implemented successfully. The strategies used where to take as a reference in the correlation matrix which were the variables that were more correlated to life expectancy and take the inflation variance factor as an indicator of which variables should be removed from the model to obtain a better performance. Then, some indicators such as the multiple R-squared of the model, which is 0.822, a close value to 1, which indicates that a large proportion of variance is indicated by the independent variables and which is good, reaffirm that the model has been implemented with great results.    
