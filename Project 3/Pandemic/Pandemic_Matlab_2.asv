@@ -215,9 +215,8 @@ non_infected = non_infected(1: last_h);
 infected = infected(1: last_h);
 recovered = recovered(1: last_h);
 % Plot the epidemic curve according to the epidemic scenario
-if plot_epidemic_curves_check
-    plot_epidemic_curves(do_plot, non_infected, infected, recovered, inner_border, confinement)
-end
+plot_epidemic_curves(do_plot, non_infected, infected, recovered, inner_border, confinement, plot_epidemic_curves_check)
+
 %----------------------------------------%
 %                RESULTS                 %
 %----------------------------------------%
@@ -731,7 +730,7 @@ end
 end
 
 % Plot the epidemic curves
-function plot_epidemic_curves(do_plot, non_infected, infected, recovered, inner_border, confinement)
+function plot_epidemic_curves(do_plot, non_infected, infected, recovered, inner_border, confinement, plot_epidemic_curves_check)
 
 % This function plots the result of the simulation (the epidemic curves)
 % with an appropiate title
