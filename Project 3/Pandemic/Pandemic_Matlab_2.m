@@ -21,7 +21,7 @@ people = round((size_x)^2*density);
 inner_border = 1; % 0 no inner border, 1 with inner border
 gap = 7; % oberture in the imperfect border
 % Health parameters:
-sick_pc = 10; % percentage of sick people (all grid, or within inner border)
+sick_pc = 50; % percentage of sick people (all grid, or within inner border)
 max_sick_time = 30; % time of recovery after being infected (in average)
 % Movement parameters:
 confinement = 0; % 0 no confinement, 1 confinment. 
@@ -45,7 +45,7 @@ Input = struct('max_iter', max_iter, 'people', people,...,
 
 Result = Covid19_Simulator(Input, plot_epidemic_curves_check);
 
-% Example: Plot the state of simulation at t_index = 1
+% Example: Plot the of simulation at t_index = 1
 t_index = 1;
 figure()
 scatter(Result.X_people_time(t_index,:), Result.Y_people_time(t_index,:),[], Result.health_color_time(:, :,1), 'Filled')
@@ -171,6 +171,17 @@ for h = 1: max_iter
     non_infected(h) = sum(health_status == 1);
     infected(h) = sum(health_status == 2);
     recovered(h) = sum(health_status == 3);
+
+    % PLOT at each iteration %
+    %figure()
+    %scatter(X_people_time(h,:), Y_people_time(h,:),[], health_color_time(:, :,1), 'Filled');
+   %hold on
+   % scatter(X_border, Y_border,[], [0.91 0.41 0.17],'*'); %orange frontier
+   % xlabel('Coordinates in X axis')
+   % ylabel('Coordinates in Y axis')
+   % title(sprintf('State of the Simulation at Time Index %d',h))
+   % M(h)= getframe;
+
     % Stop the loop in case no people is infected
     if infected(h) == 0
         last_h = h;
@@ -221,7 +232,6 @@ end
 %----------------------------------------%
 %                RESULTS                 %
 %----------------------------------------%
-
 Result = struct('X_border', X_border, 'Y_border', Y_border ,...,
                  'X_people_time', X_people_time,...,
                  'Y_people_time', Y_people_time,...,
@@ -230,6 +240,15 @@ Result = struct('X_border', X_border, 'Y_border', Y_border ,...,
                  'non_infected',non_infected,...,
                  'infected', infected,...,
                  'recovered', recovered);
+%Result = struct('X_border', X_border, 'Y_border', Y_border ,...,
+%                 'X_people_time', X_people_time,...,
+%                 'Y_people_time', Y_people_time,...,
+%                 'health_color_time', health_color_time,...,
+%                 'infection_matrix', infection_matrix,...,
+%                 'non_infected',non_infected,...,
+%                 'infected', infected,...,
+%                 'recovered', recovered, ...
+%                 'M', M);
              
 % Message to the user
 disp('End of the Simulation')

@@ -1,5 +1,5 @@
 
-function [Result, M] = Pandemic_Matlab_2(density, plot_epidemic_curves_check)
+function Result = Pandemic_Matlab_ex2(density, plot_epidemic_curves_check)
 % This function is an example of how to use Covid19_Simulator
 % Use it wisely!
 % Clear screen
@@ -43,7 +43,7 @@ Input = struct('max_iter', max_iter, 'people', people,...,
 %               FUNCTION USE             %
 %----------------------------------------%
 
-[Result, M] = Covid19_Simulator(Input, plot_epidemic_curves_check);
+Result = Covid19_Simulator(Input, plot_epidemic_curves_check);
 
 % Example: Plot the of simulation at t_index = 1
 t_index = 1;
@@ -57,7 +57,7 @@ title(sprintf('State of the Simulation at Time Index %d',t_index))
 end
 %--------------------------------------------------------------------------
 
-function [Result, M] = Covid19_Simulator(Input, plot_epidemic_curves_check)
+function Result = Covid19_Simulator(Input, plot_epidemic_curves_check)
 % This function simulates an epidemy caused by a virus in different
 % scenarios: 
 %   -  No measure against the epidemy.
@@ -241,7 +241,7 @@ Result = struct('X_border', X_border, 'Y_border', Y_border ,...,
                  'non_infected',non_infected,...,
                  'infected', infected,...,
                  'recovered', recovered, ...
-                 );
+                 'M', M);
              
 % Message to the user
 disp('End of the Simulation')
