@@ -1,5 +1,6 @@
 
-function Result = Pandemic_Matlab_2(density, plot_epidemic_curves_check)
+function Result = Pandemic_Matlab_ex8(density, probability_infection)
+plot_epidemic_curves_check = false;
 % This function is an example of how to use Covid19_Simulator
 % Use it wisely!
 % Clear screen
@@ -43,7 +44,7 @@ Input = struct('max_iter', max_iter, 'people', people,...,
 %               FUNCTION USE             %
 %----------------------------------------%
 
-Result = Covid19_Simulator(Input, plot_epidemic_curves_check);
+Result = Covid19_Simulator(Input, plot_epidemic_curves_check, probability_infection);
 
 % Example: Plot the of simulation at t_index = 1
 t_index = 1;
@@ -57,7 +58,7 @@ title(sprintf('State of the Simulation at Time Index %d',t_index))
 end
 %--------------------------------------------------------------------------
 
-function Result = Covid19_Simulator(Input, plot_epidemic_curves_check)
+function Result = Covid19_Simulator(Input, plot_epidemic_curves_check, probability_infection)
 % This function simulates an epidemy caused by a virus in different
 % scenarios: 
 %   -  No measure against the epidemy.
@@ -190,7 +191,7 @@ for h = 1: max_iter
     % Update the position of the people on the grid
     [X_people, Y_people, vX_people, vY_people] = update_position(X_people, Y_people, vX_people, vY_people, X_border, Y_border, X_inner, Y_inner);
     % Update health status and healt color from healt to sick
-    [health_status, health_color, infection_matrix, sick_time] = update_sick(X_people, Y_people, y_inner_max, health_status, health_color, infection_matrix, sick_time);
+    [health_status, health_color, infection_matrix, sick_time] = update_sick(X_people, Y_people, y_inner_max, health_status, health_color, infection_matrix, sick_time, probability_infection);
     [health_status, health_color, sick_time] = update_recover(health_status, health_color, sick_time, recover_time, plot_epidemic_curves_check);
 end
 
@@ -641,7 +642,7 @@ Y_people = Y_people + vY_people;
 end
 
 % Update health (non-infected to infected)
-function  [health_status, health_color, infection_matrix, sick_time] = update_sick(X_people, Y_people, y_inner_max, health_status, health_color, infection_matrix, sick_time)
+function  [health_status, health_color, infection_matrix, sick_time] = update_sick(X_people, Y_people, y_inner_max, health_status, health_color, infection_matrix, sick_time, probability_infection)
 % This function updates the health status, the health_color and starts the
 % sick_time counter  when someone is infected.
 
@@ -668,6 +669,12 @@ function  [health_status, health_color, infection_matrix, sick_time] = update_si
 % contact can changes the number of elements to iterate in each operation.
 % We do this combining an infinte while loop with an abort condition with a
 % for loop.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 50 % infection probability
+%probability_infection = 0.5;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 ind_people = 1: length(X_people);
     l = 0;
     while 1
@@ -682,19 +689,25 @@ ind_people = 1: length(X_people);
                         if X_people(i) == X_people(j) && Y_people(i) == Y_people(j)
                             if health_status(i) == 3 || health_status(j) == 3
                             elseif health_status(i) == 2 && health_status(j) == 1 % i infects j
-                                infection_matrix(i ,j) = 1; % infection ij
-                                health_status(j) = 2; % change status to sick
-                                health_color(j, :) = [1 0 1]; % change to color magenta
-                                sick_time(j) = 1; % start the sick time counter
-                                k = k + 1;
-                                coincidences_zeros(k) = j;
+                                random_number = rand;
+                                if random_number < probability_infection                 
+                                    infection_matrix(i ,j) = 1; % infection ij
+                                    health_status(j) = 2; % change status to sick
+                                    health_color(j, :) = [1 0 1]; % change to color magenta
+                                    sick_time(j) = 1; % start the sick time counter
+                                    k = k + 1;
+                                    coincidences_zeros(k) = j;
+                                end
                             elseif health_status(i) == 1 && health_status(j) == 2 %j infects i
-                                infection_matrix(j ,i) = 1; % infection ij
-                                health_status(i) = 2; %change status to sick
-                                health_color(i, :) = [1 0 1]; % change to color magenta
-                                sick_time(i) = 1; % start the sick time counter
-                                k = k + 1;
-                                coincidences_zeros(k) = j; 
+                                random_number = rand;
+                                if random_number < probability_infection   
+                                    infection_matrix(j ,i) = 1; % infection ij
+                                    health_status(i) = 2; %change status to sick
+                                    health_color(i, :) = [1 0 1]; % change to color magenta
+                                    sick_time(i) = 1; % start the sick time counter
+                                    k = k + 1;
+                                    coincidences_zeros(k) = j;
+                                end
                             end
                         end
                     end
