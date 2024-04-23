@@ -1,5 +1,4 @@
-
-function Result = Pandemic_Matlab_ex5(Input, plot_epidemic_curves_check)
+function Result = Pandemic_Matlab_ex6(density, plot_epidemic_curves_check)
 % This function is an example of how to use Covid19_Simulator
 % Use it wisely!
 % Clear screen
@@ -14,9 +13,9 @@ max_iter = 1000;
 % Size of the grid  (it's a square grid)
 size_x = 100; % size_x x size_x is the size of the grid in poitns
 % Density of population
-density = 0.2;
+%density = 0.2;
 % Number of people in the simulation
-people = round(size_x^2 * density);
+people = round((size_x)^2*density);
 % Border parameters:
 inner_border = 1; % 0 no inner border, 1 with inner border
 gap = 7; % oberture in the imperfect border
@@ -45,15 +44,6 @@ Input = struct('max_iter', max_iter, 'people', people,...,
 
 Result = Covid19_Simulator(Input, plot_epidemic_curves_check);
 
-% Example: Plot the of simulation at t_index = 1
-t_index = 1;
-figure()
-scatter(Result.X_people_time(t_index,:), Result.Y_people_time(t_index,:),[], Result.health_color_time(:, :,1), 'Filled')
-hold on
-scatter(Result.X_border, Result.Y_border,[], [0.91 0.41 0.17],'*') %orange frontier
-xlabel('Coordinates in X axis')
-ylabel('Coordinates in Y axis')
-title(sprintf('State of the Simulation at Time Index %d',t_index))
 end
 %--------------------------------------------------------------------------
 

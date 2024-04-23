@@ -1,5 +1,5 @@
 
-function Result = Pandemic_Matlab_2(density, plot_epidemic_curves_check)
+function Result = Pandemic_Matlab_ex7(gap, confined_pc)
 % This function is an example of how to use Covid19_Simulator
 % Use it wisely!
 % Clear screen
@@ -14,20 +14,21 @@ max_iter = 1000;
 % Size of the grid  (it's a square grid)
 size_x = 100; % size_x x size_x is the size of the grid in poitns
 % Density of population
-%density = 0.2;
+density = 0.15;
 % Number of people in the simulation
 people = round((size_x)^2*density);
 % Border parameters:
 inner_border = 1; % 0 no inner border, 1 with inner border
-gap = 7; % oberture in the imperfect border
+%gap = 7; % oberture in the imperfect border
 % Health parameters:
 sick_pc = 50; % percentage of sick people (all grid, or within inner border)
 max_sick_time = 30; % time of recovery after being infected (in average)
 % Movement parameters:
 confinement = 0; % 0 no confinement, 1 confinment. 
-confined_pc = 50;% degree of confinement in percetage (people not moving)
+%confined_pc = 50;% degree of confinement in percetage (people not moving)
 % Plot parameters
 do_plot = 1; % 0 plot the result, 1 don't plot it.
+plot_epidemic_curves_check = false;
 
 Input = struct('max_iter', max_iter, 'people', people,...,
                  'size_x', size_x,...,

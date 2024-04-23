@@ -1,5 +1,5 @@
 
-function Result = Pandemic_Matlab_ex3(density, plot_epidemic_curves_check)
+function Result = Pandemic_Matlab_ex3(Input, plot_epidemic_curves_check)
 % This function is an example of how to use Covid19_Simulator
 % Use it wisely!
 % Clear screen

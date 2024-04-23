@@ -1,5 +1,5 @@
 
-function Result = Pandemic_Matlab_ex1(density, plot_epidemic_curves_check)
+function Result = Pandemic_Matlab_ex1(Input, plot_epidemic_curves_check)
 % This function is an example of how to use Covid19_Simulator
 % Use it wisely!
 % Clear screen
@@ -14,7 +14,7 @@ max_iter = 1000;
 % Size of the grid  (it's a square grid)
 size_x = 100; % size_x x size_x is the size of the grid in poitns
 % Density of population
-%density = 0.2;
+density = 0.2;
 % Number of people in the simulation
 people = round((size_x)^2*density);
 % Border parameters:
