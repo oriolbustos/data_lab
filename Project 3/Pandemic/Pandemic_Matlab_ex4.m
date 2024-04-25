@@ -88,11 +88,11 @@ function Result = Covid19_Simulator(Input, plot_epidemic_curves_check)
 % Result.recovered: Vector. Number of recovered cases along time.
 
 % message to the user
-disp(' ')
-disp('%----------------------%')
-disp('%    Covid_Simulator   %')
-disp('%----------------------%')
-disp(' ')
+% disp(' ')
+% disp('%----------------------%')
+% disp('%    Covid_Simulator   %')
+% disp('%----------------------%')
+% disp(' ')
 
 %----------------------------------------%
 %            EXTRACT PARAMETERS          %
@@ -122,7 +122,7 @@ make_checks(max_iter, size_x, gap, inner_border, people, sick_pc, confinement, c
 %----------------------------------------%
 
 % Message to the user
-disp('Now Initializing')
+% disp('Now Initializing')
 % Define a 2D grid (the patient's space)
 [X, Y, X_rshp, Y_rshp] = make_grid(size_x);
 % Create the borders for this space
@@ -139,7 +139,7 @@ disp('Now Initializing')
 %----------------------------------------%
 
 % Message to the user
-disp('Now Simulating')
+% disp('Now Simulating')
 % Create the vectors with people's position, accross time
 X_people_time = zeros(max_iter, size(X_people, 2));
 Y_people_time = zeros(max_iter, size(X_people, 2)); % X has the same dimensios as Y
@@ -177,7 +177,7 @@ for h = 1: max_iter
 end
 
 % Message to the user
-disp('Now Generating Results')
+% disp('Now Generating Results')
 
 %----------------------------------------%
 %               HEALTH COLORS            %
@@ -224,7 +224,7 @@ Result = struct('X_border', X_border, 'Y_border', Y_border ,...,
                  'recovered', recovered);
              
 % Message to the user
-disp('End of the Simulation')
+% disp('End of the Simulation')
 end
 
 %--------------------------------------------------------------------------
